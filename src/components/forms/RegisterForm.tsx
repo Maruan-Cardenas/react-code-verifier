@@ -1,3 +1,4 @@
+import { AxiosResponse } from "axios";
 import { Formik, Field, Form, ErrorMessage } from "formik";
 import * as yup from "yup";
 
@@ -5,24 +6,58 @@ import { register } from "../../services/authService";
 
 // Define Schema of validation with Yup
 
-const loginSchema = yup.object().shape({
-  email: yup.string().email('Invalid Email Format').required('Email is required'),
-  password: yup.string().required('Password is required'),
-  confirmPassword: yup.string().oneOf([yup.ref('password'), null], 'Passwords must match').required('Confirm Password is required'),
-  name: yup.string().required('Name is required'),
-  age: yup.number().required('Age is required'),
+const registerSchema = yup.object().shape({
+  name: yup
+    .string()
+    .min(6, "Username must have 6 letters minimun")
+    .max(12, "username must have maximum 12 letters")
+    .required('Name is required'),
+  email: yup
+    .string()
+    .email('Invalid Email Format')
+    .required('Email is required'),
+  password: yup
+    .string()
+    .min(8, "Password must have 8 letters minimun")
+    .required('Password is required'),
+  confirmPassword: yup
+    .string()
+    .when("password", {
+      is: (val: string) => (val && val.length > 0 ? true : false),
+      then: yup.string().oneOf([yup.ref('password'), null], 'Passwords must match')
+    })
+    .required('Confirm Password is required'),
+  age: yup
+    .number()
+    .min(10, 'You must be 10 years old')
+    .required('Age is required')
 });
 
 // Register component
 const RegisterForm = () => {
   return (
     <Formik
-      initialValues={{ name: "", email: "", password: "", age: 0 }}
-      validationSchema={loginSchema}
+      initialValues={{ name: "", email: "", password: "", confirmPassword: "", age: 0 }}
+      validationSchema={ registerSchema }
       onSubmit={(values, { setSubmitting }) => {
         setTimeout(() => {
-          register( values.name, values.email, values.password, values.age);
-          setSubmitting(false);
+          register(values.name, values.email, values.password, values.age)
+            .then((res: AxiosResponse) => {
+              if (res.status === 200) {
+                if (res.data) {
+                  console.log('User registered successfully');
+                  console.log(res.data);
+                } else {
+                  throw new Error('invalid data');
+                }
+              } else {
+                throw new Error('invalid credentials');
+              }
+              setSubmitting(false);
+            }).catch((err) => {
+              console.error(`[Login ERROR] Something went wrong: ${err}`);
+              setSubmitting(false);
+            })
         }, 400);
       }}
     >
@@ -49,7 +84,7 @@ const RegisterForm = () => {
             <ErrorMessage name="password" component="div" />
           </div>
           <div className="form-group">
-            <label htmlFor="confirmPassword">confirmPassword</label>
+            <label htmlFor="confirmPassword">Confirm Password</label>
             <Field
               type="confirmPassword"
               name="confirmPassword"

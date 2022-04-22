@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+
 import { AxiosResponse } from "axios";
 import { Formik, Field, Form, ErrorMessage } from "formik";
 import * as yup from "yup";
@@ -13,29 +15,29 @@ const loginSchema = yup.object().shape({
 
 // Login component
 const LoginForm = () => {
+  const navigate = useNavigate();
   return (
     <Formik
       initialValues={{ email: "", password: "" }}
       validationSchema={loginSchema}
-      onSubmit={(values, { setSubmitting }) => {
-        setTimeout(() => {
-          login(values.email, values.password)
-            .then((res: AxiosResponse) => {
-              if (res.status === 200) {
-                if (res.data.token) {
-                  sessionStorage.setItem("token", res.data.token);
-                }else {
-                  throw new Error('invalid Token');  
-                }
-              } else {
-                throw new Error('invalid credentials');
+      onSubmit={async (values, { setSubmitting }) => {
+        login(values.email, values.password)
+          .then(async (res: AxiosResponse) => {
+            if (res.status === 200) {
+              if (res.data.token) {
+                await sessionStorage.setItem("token", res.data.token);
+                navigate("/");
+              }else {
+                throw new Error('invalid Token');  
               }
-              setSubmitting(false);
-            }).catch((err) => {
-              console.error(`[Login ERROR] Something went wrong: ${err}`);
-              setSubmitting(false);
-            })
-        }, 400);
+            } else {
+              throw new Error('invalid credentials');
+            }
+            setSubmitting(false);
+          }).catch((err) => {
+            console.error(`[Login ERROR] Something went wrong: ${err}`);
+            setSubmitting(false);
+          })
       }}
     >
       {({ isSubmitting }) => (
